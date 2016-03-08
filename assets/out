@@ -28,7 +28,7 @@ if test -f "$instance_id_file"; then
   exit 1
 fi
 
-instance_id=$(cat .vagrant/machines/default/aws/id)
+instance_id=$(cat $instance_id_file)
 
 if [ -z "$instance_id" ]; then
   echo "instance_id_file empty" >&2
