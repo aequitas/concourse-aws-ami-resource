@@ -15,7 +15,7 @@ cat > $payload <&0
 
 export AWS_DEFAULT_REGION=$(cat $payload|jq -r '.params.region // .source.region')
 
-instance_id_file = "$(cat $payload|jq -r '.params.instance_id_file // .source.instance_id_file')"
+instance_id_file="$(cat $payload|jq -r '.params.instance_id_file // .source.instance_id_file')"
 name="$(cat $payload|jq -r '.params.name // .source.name')"
 
 if [ -z "$name" ]; then
