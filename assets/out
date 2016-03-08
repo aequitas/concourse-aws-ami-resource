@@ -23,7 +23,7 @@ if [ -z "$name" ]; then
   exit 1
 fi
 
-if test -f "$instance_id_file"; then
+if ! test -f "$instance_id_file"; then
   echo "instance id file not found" >&2
   exit 1
 fi
@@ -38,16 +38,16 @@ fi
 description="Created by concourse-aws-ami-resource"
 
 # give command to create image
-response=$(aws ec2 create-image --instance-id $instance_id --name $name --description $description)
+response=$(aws ec2 create-image --instance-id "$instance_id" --name "$name" --description "$description")
 
 # get the ID
 ami_id=$(echo $response|jq -r '.ImageId')
 
 # wait for image to be available
-aws ec2 wait image-available $ami_id
+aws ec2 wait image-available --image-ids "$ami_id"
 
 # get some metadata
-metadata=$(aws ec2 describe-images --image-ids $ami_id | jq -r '.Images[0]|{Name,CreationDate,OwnerId}'
+metadata=$(aws ec2 describe-images --image-ids "$ami_id" | jq -r '.Images[0]|{Name,CreationDate,OwnerId}')
 
 jq -n "{
   version: ${response},
