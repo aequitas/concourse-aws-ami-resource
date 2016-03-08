@@ -1,0 +1,31 @@
+#!/bin/sh
+# vim: set ft=sh
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+# for jq
+PATH=/usr/local/bin:$PATH
+
+payload=$(mktemp /tmp/resource-check.XXXXXX)
+
+cat > $payload <&0
+
+export AWS_DEFAULT_REGION=$(cat $payload|jq -r '.params.region // .source.region')
+
+name="$(cat $payload|jq -r '.params.name // .source.name')"
+
+if [ -z "$name" ]; then
+  echo "no name specified" >&2
+  exit 1
+fi
+
+# wait for image to be available
+aws ec2 wait image-available $ami_id
+
+# get some metadata
+versions=$(aws ec2 describe-images --filter Name=name,Values="${name}" | jq -r '.Images|map({ImageId})')
+
+jq -n "${versions}" >&3
