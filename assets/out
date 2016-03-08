@@ -24,14 +24,14 @@ if [ -z "$name" ]; then
 fi
 
 if ! test -f "$instance_id_file"; then
-  echo "instance id file not found" >&2
+  echo "instance id file ${instance_id_file} not found in $(pwd)" >&2
   exit 1
 fi
 
 instance_id=$(cat $instance_id_file)
 
 if [ -z "$instance_id" ]; then
-  echo "instance_id_file empty" >&2
+  echo "instance_id_file ${instance_id_file} empty" >&2
   exit 1
 fi
 
