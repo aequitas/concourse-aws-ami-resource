@@ -26,7 +26,8 @@ ami_id="$(cat $payload|jq -r '.version|.ImageId')"
 aws ec2 wait image-available --image-ids $ami_id
 
 # get some metadata
-metadata=$(aws ec2 describe-images --image-ids $ami_id | jq '.Images[0]|{Name,CreationDate,OwnerId}')
+metadata=$(aws ec2 describe-images --image-ids $ami_id | \
+    jq -r '.Images[0]|{Name,CreationDate,OwnerId}|to_entries|map({"name":.key, "value":.value})')
 
 jq -n "{
   version: {ImageId: $(echo ${ami_id}| jq -R .)},
