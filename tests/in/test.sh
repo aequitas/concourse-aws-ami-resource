@@ -10,4 +10,4 @@ input='{"version":{"ImageId": "ami-0123456"}}'
 
 output=$(echo $input | /opt/resource/in /tmp/build/get)
 
-echo $output | jq -er '.version == "ami-0123456"'
+echo $output | jq -er '.version.ImageId == "ami-0123456"'

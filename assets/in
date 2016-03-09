@@ -14,9 +14,6 @@ if [ -z "$destination" ]; then
   exit 1
 fi
 
-# for jq
-PATH=/usr/local/bin:$PATH
-
 payload=$(mktemp /tmp/resource-in.XXXXXX)
 
 cat > $payload <&0
@@ -26,12 +23,12 @@ export AWS_DEFAULT_REGION=$(cat $payload|jq -r '.params.region // .source.region
 ami_id="$(cat $payload|jq -r '.version|.ImageId')"
 
 # wait for image to be available
-aws ec2 wait image-available $ami_id
+aws ec2 wait image-available --image-ids $ami_id
 
 # get some metadata
 metadata=$(aws ec2 describe-images --image-ids $ami_id | jq '.Images[0]|{Name,CreationDate,OwnerId}')
 
 jq -n "{
-  version: $(echo ${ami_id}| jq -R .),
+  version: {ImageId: $(echo ${ami_id}| jq -R .)},
   metadata: $(echo ${metadata}| jq .)
 }" >&3
