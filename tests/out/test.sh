@@ -31,3 +31,6 @@ output=$(echo $input | /opt/resource/out /tmp/build/put)
 test -f /tmp/i-12345678
 
 echo $output | jq -er '.version.ImageId == "ami-0123456"'
+
+# test metadata output
+echo $output | jq -er '.metadata|map({"key":.name, "value":.value})|from_entries|.Name == "test"'
