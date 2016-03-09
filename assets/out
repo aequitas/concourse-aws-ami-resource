@@ -17,6 +17,7 @@ fi
 payload=$(mktemp /tmp/resource-out.XXXXXX)
 
 cat > $payload <&0
+test -z $DEBUG || cat $payload
 
 cd $source
 
@@ -25,6 +26,7 @@ export AWS_DEFAULT_REGION=$(cat $payload|jq -r '.params.region // .source.region
 instance_id_file="$(cat $payload|jq -r '.params.instance_id_file // .source.instance_id_file // "ami-id/id" ')"
 name="$(cat $payload|jq -r '.params.name // .source.name')"
 description="$(cat $payload|jq -r '.params.name // .source.name // "Created by concourse-aws-ami-resource"')"
+terminate="$(cat $payload|jq -r '.params.terminate == true')"
 
 if [ -z "$name" ]; then
   echo "no name specified" >&2
@@ -54,6 +56,11 @@ aws ec2 wait image-available --image-ids "$ami_id"
 
 # get some metadata
 metadata=$(aws ec2 describe-images --image-ids "$ami_id" | jq -r '.Images[0]|{Name,CreationDate,OwnerId}')
+
+# terminate instance if requested
+if $terminate;then
+    aws ec2 terminate-instances --instance-ids "$instance_id"
+fi
 
 jq -n "{
   version: ${response},
