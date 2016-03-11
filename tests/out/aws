@@ -6,6 +6,7 @@ set -x
 
 if [ "$2" == "create-image" ];then
     test "$4" == "i-12345678" || exit 1
+    test "$6" == "1234" || exit 1
     jq -n '{ImageId: "ami-0123456"}'
     exit 0
 fi
@@ -18,7 +19,7 @@ fi
 
 if [ "$2" == "describe-images" ];then
     test "$4" == "ami-0123456" || exit 1
-    jq -n  '{Images: [{Name: "test", CreationDate: "2016-03-08T22:35:54.000Z", OwnerId:"1234"}]}'
+    jq -n  '{Images: [{Name: "1234", CreationDate: "2016-03-08T22:35:54.000Z", OwnerId:"1234"}]}'
     exit 0
 fi
 
