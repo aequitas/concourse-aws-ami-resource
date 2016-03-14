@@ -30,7 +30,7 @@ description="$(cat $payload|jq -r '.params.description // .source.description //
 terminate="$(cat $payload|jq -r '.params.terminate == true')"
 
 # we eiter create a AMI and/or terminate the instance
-if [ -z "$name_from" && ! $terminate ]; then
+if [ -z "$name_from" ] && [ ! $terminate ]; then
     echo "no name source file specified (name_from) and not terminate only" >&2
     exit 1
 fi
