@@ -10,8 +10,8 @@ exec 1>&2 # redirect all output to stderr for logging
 source=$1
 
 if [ -z "$source" ]; then
-  echo "usage: $0 <path/to/source>"
-  exit 1
+    echo "usage: $0 <path/to/source>"
+    exit 1
 fi
 
 payload=$(mktemp /tmp/resource-out.XXXXXX)
@@ -29,52 +29,62 @@ name_from="$(cat $payload|jq -r '.params.name_from // .source.name_from // ""')"
 description="$(cat $payload|jq -r '.params.description // .source.description // "Created by concourse-aws-ami-resource"')"
 terminate="$(cat $payload|jq -r '.params.terminate == true')"
 
-if [ -z "$name_from" ]; then
-  echo "no name source file specified (name_from)" >&2
-  exit 1
+# we eiter create a AMI and/or terminate the instance
+if [ -z "$name_from" && ! $terminate ]; then
+    echo "no name source file specified (name_from) and not terminate only" >&2
+    exit 1
 fi
 
-name_suffix=$(cat $name_from)
-
-if [ -z "$name_from" ]; then
-  echo "name_from file empty!" >&2
-  exit 1
-fi
-
-name="${name_prefix}${name_suffix}"
-
+# we need an instance ID to create a snapshot from or to terminate
 if ! test -f "$instance_id_file"; then
-  echo "instance id file ${instance_id_file} not found in $(pwd)" >&2
-  exit 1
+    echo "instance id file ${instance_id_file} not found in $(pwd)" >&2
+    exit 1
 fi
 
 instance_id=$(cat $instance_id_file)
 
 if [ -z "$instance_id" ]; then
-  echo "instance_id_file ${instance_id_file} empty" >&2
-  exit 1
+    echo "instance_id_file ${instance_id_file} empty" >&2
+    exit 1
 fi
 
-# if instance is just shutting down wait to complete otherwise create image fails
-stopping=$(aws ec2 describe-instance-status --instance-ids "$instance_id" | \
-    jq -e '.InstanceStatuses[0]|.InstanceState|.Name == "stopping"')
+# if we have a name from, we first create the AMI
+if [ "$name_from" ];then
+    # if name_from specified, create an AMI
+    name_suffix=$(cat $name_from)
 
-if [ "$state" == "true" ];then
-    aws ec2 wait instance-stopped --instance-ids "$instance_id"
+    if [ -z "$name_from" ]; then
+        echo "name_from file empty!" >&2
+        exit 1
+    fi
+
+    name="${name_prefix}${name_suffix}"
+
+    # if instance is just shutting down wait to complete otherwise create image fails
+    stopping=$(aws ec2 describe-instance-status --instance-ids "$instance_id" | \
+        jq -e '.InstanceStatuses[0]|.InstanceState|.Name == "stopping"')
+
+    if [ "$state" == "true" ];then
+        aws ec2 wait instance-stopped --instance-ids "$instance_id"
+    fi
+
+    # give command to create image
+    response=$(aws ec2 create-image --instance-id "$instance_id" --name "$name" --description "$description")
+
+    # get the ID
+    ami_id=$(echo $response|jq -r '.ImageId')
+
+    # wait for image to be available
+    aws ec2 wait image-available --image-ids "$ami_id"
+
+    # get some metadata
+    metadata=$(aws ec2 describe-images --image-ids "$ami_id" | \
+        jq -r '.Images[0]|{Name,CreationDate,OwnerId}|to_entries|map({"name":.key, "value":.value})')
+else
+    # provide empty response/metadata if not creating AMI
+    response="{}"
+    metadata="{}"
 fi
-
-# give command to create image
-response=$(aws ec2 create-image --instance-id "$instance_id" --name "$name" --description "$description")
-
-# get the ID
-ami_id=$(echo $response|jq -r '.ImageId')
-
-# wait for image to be available
-aws ec2 wait image-available --image-ids "$ami_id"
-
-# get some metadata
-metadata=$(aws ec2 describe-images --image-ids "$ami_id" | \
-    jq -r '.Images[0]|{Name,CreationDate,OwnerId}|to_entries|map({"name":.key, "value":.value})')
 
 # terminate instance if requested
 if $terminate;then
@@ -82,6 +92,6 @@ if $terminate;then
 fi
 
 jq -n "{
-  version: ${response},
-  metadata: ${metadata}
+    version: ${response},
+    metadata: ${metadata}
 }" >&3
