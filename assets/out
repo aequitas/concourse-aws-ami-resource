@@ -61,10 +61,9 @@ if [ "$name_from" ];then
     name="${name_prefix}${name_suffix}"
 
     # if instance is just shutting down wait to complete otherwise create image fails
-    stopping=$(aws ec2 describe-instance-status --instance-ids "$instance_id" | \
-        jq -e '.InstanceStatuses[0]|.InstanceState|.Name == "stopping"')
+    stopping="$(aws ec2 describe-instance-status --instance-ids "$instance_id" | jq '.InstanceStatuses[0]|.InstanceState|.Name == "stopping"')"
 
-    if [ "$state" == "true" ];then
+    if [ "$stopping" == "true" ];then
         aws ec2 wait instance-stopped --instance-ids "$instance_id"
     fi
 
