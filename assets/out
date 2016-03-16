@@ -73,6 +73,9 @@ if [ "$name_from" ];then
     # get the ID
     ami_id=$(echo $response|jq -r '.ImageId')
 
+    # reduce race condition
+    sleep 5
+
     # wait for image to be available
     aws ec2 wait image-available --image-ids "$ami_id"
 
