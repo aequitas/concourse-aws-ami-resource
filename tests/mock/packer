@@ -2,6 +2,7 @@
 
 import os
 import sys
+from time import sleep
 
 # test existance of packer binary
 assert os.path.exists('/usr/local/bin/packer')
@@ -27,7 +28,9 @@ if template_file == 'src/build-vars-from-file.json':
     assert '-var=source_ami=ami-12345678' in sys.argv
 
 logfile = os.path.join(os.path.dirname(sys.argv[0]), log_lookup[template_file])
-print(open(logfile).read())
+for line in open(logfile).readlines():
+    print(line)
+    sleep(0.01)
 sys.exit(0)
 
 raise NotImplemented('passed arguments are not configured to return output.')

@@ -43,13 +43,14 @@ class PackerResource(Resource):
         proc = subprocess.Popen(cmd, stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE, universal_newlines=True)
         output = ""
-        while True:
-            lines = proc.stdout.readlines()
-            output += "\n".join(lines)
-            [log.info(human_readable_output(l.strip())) for l in lines]
-            if proc.poll() is not None:
-                break
+        for line in proc.stdout:
+            if not line or not line.strip():
+                continue
+            output += line
+            log.info(human_readable_output(line.strip()))
 
+        # set exitcode
+        proc.wait()
         if proc.returncode != 0:
             log.error('packer build failed.')
             sys.exit(1)
