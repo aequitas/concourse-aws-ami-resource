@@ -41,19 +41,19 @@ class PackerResource(Resource):
 
         log.info('starting packer build')
         proc = subprocess.Popen(cmd, stderr=subprocess.STDOUT,
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE, universal_newlines=True)
         output = ""
-        while proc.poll() is None:
-            line = proc.stdout.readline().decode('utf8')
-            if line:
-                output += line
+        while True:
+            lines = proc.stdout.readlines()
+            output += "\n".join(lines)
+            [log.info(human_readable_output(l.strip())) for l in lines]
+            if proc.poll() is not None:
+                break
 
-                out = human_readable_output(line.strip())
-                if out:
-                    log.info(out)
         if proc.returncode != 0:
             log.error('packer build failed.')
             sys.exit(1)
+        log.info('packer build completed.')
 
         AMI_MATCH = 'artifact,0,id,(?P<region>[\w-]+):(?P<ami_id>[\w-]+)'
         version_match = re.search(AMI_MATCH, output, re.DOTALL)
