@@ -23,15 +23,10 @@ region="$(jq -r '.version|.Region' < "$payload")"
 
 export AWS_DEFAULT_REGION="$region"
 
-echo "checking image availability"
-
-# wait for image to be available
-aws ec2 wait image-available --image-ids "$ami_id"
-
 echo "$ami_id" > "$destination/id"
 echo "$region" > "$destination/region"
 
-echo "getting metadata"
+echo "getting image metadata"
 
 # get some metadata
 metadata=$(aws ec2 describe-images --image-ids "$ami_id" | \
